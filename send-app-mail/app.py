@@ -17,9 +17,7 @@ def send_email():
     if not name or not email:
         return {"error": "Missing name or email"}
 
-    message = f"""Subject: Thank You for Applying to EANDÉ Africa
-
-Dear {name},
+    message = f"""Dear {name},
 
 Thank you for your interest in joining EANDÉ Africa. We appreciate the time and effort you put into your application and look forward to learning more about you. Our goal is to make this process as smooth and straightforward as possible.
 
@@ -89,7 +87,7 @@ EANDÉ Africa Team
         Source=SENDER_EMAIL,
         Destination={"ToAddresses": recipients},
         Message={
-            "Subject": {"Data": "Your Application to EANDÉ Africa"},
+            "Subject": {"Data": "Thank You for Applying to EANDÉ Africa"},
             "Body": {"Text": {"Data": message}}
         }
     )
