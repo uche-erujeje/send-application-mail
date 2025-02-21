@@ -1,0 +1,66 @@
+name: Deploy Chalice API
+
+on:
+  push:
+    branches:
+      - main  # Deploy on push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to AWS
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set Up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Cache Python Dependencies
+      id: cache-venv
+      uses: actions/cache@v3
+      with:
+        path: send-app-mail/venv
+        key: venv-${{ runner.os }}-python-${{ hashFiles('send-app-mail/requirements.txt') }}
+        restore-keys: |
+          venv-${{ runner.os }}-python-
+
+    - name: Cache Chalice Deployment State
+      id: cache-chalice
+      uses: actions/cache@v3
+      with:
+        path: send-app-mail/.chalice
+        key: chalice-${{ runner.os }}-${{ hashFiles('send-app-mail/requirements.txt') }}
+        restore-keys: |
+          chalice-${{ runner.os }}-
+
+    - name: Install Dependencies
+      working-directory: send-app-mail
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install chalice
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1  # Replace with your AWS region
+
+    - name: Deploy Chalice App
+      working-directory: send-app-mail
+      run: |
+        source venv/bin/activate
+        chalice deploy --stage prod  # Modify stage if needed
+
+    - name: Cache Updated Chalice State
+      uses: actions/cache@v3
+      with:
+        path: send-app-mail/.chalice
+        key: chalice-${{ runner.os }}-${{ hashFiles('send-app-mail/requirements.txt') }}
