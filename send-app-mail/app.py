@@ -43,7 +43,7 @@ EANDÉ Africa Team
         Source=SENDER_EMAIL,
         Destination={"ToAddresses": [email]},
         Message={
-            "Subject": {"Data": "Your Application to EANDÉ Africa"},
+            "Subject": {"Data": "Thank You for Applying to EANDÉ Africa"},
             "Body": {"Text": {"Data": message}}
         }
     )
@@ -59,8 +59,7 @@ def send_bulk_email():
     if not recipients or not isinstance(recipients, list):
         return {"error": "Invalid or missing email list"}
 
-    message = """Subject: Thank You for Applying to EANDÉ Africa
-
+    message = """
 Dear Applicant,
 
 Thank you for your interest in joining EANDÉ Africa. We appreciate the time and effort you put into your application and look forward to learning more about you. Our goal is to make this process as smooth and straightforward as possible.
