@@ -3,7 +3,7 @@ name: Deploy Chalice API
 on:
   push:
     branches:
-      - main  # Deploy on push to main branch
+      - dev  # Deploy on push to main branch
 
 jobs:
   deploy:
