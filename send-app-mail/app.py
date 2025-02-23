@@ -5,6 +5,11 @@ import os
 app = Chalice(app_name="send-app-mail")
 ses_client = boto3.client("ses", region_name="eu-west-1")  # Change region if necessary
 
+# Initialize DynamoDB
+dynamodb = boto3.resource("dynamodb", region_name="eu-west-1")
+#TABLE_NAME = os.environ.get("TABLE_NAME", "EmailsTable")
+table = dynamodb.Table(TABLE_NAME)
+
 # Change this to your verified email address in AWS SES
 SENDER_EMAIL = "hr@eandeafrica.com"
 
@@ -92,3 +97,113 @@ EANDÉ Africa Team
     )
 
     return {"message": "Bulk email sent successfully", "response": response}
+
+
+@app.route('/store-emails', methods=['POST'])
+def store_emails():
+    """Stores multiple emails under the same category in DynamoDB"""
+    request = app.current_request.json_body
+    category = request.get("category")
+    emails = request.get("emails")
+
+    if not category or not isinstance(emails, list) or not emails:
+        return Response(body={"error": "Category and a non-empty list of emails are required."}, status_code=400)
+
+    # Store each email separately in DynamoDB
+    with table.batch_writer() as batch:
+        for email in emails:
+            batch.put_item(Item={"email": email, "category": category})
+
+    return {"message": f"{len(emails)} emails stored successfully!", "category": category}
+
+@app.route('/get-emails/{category}', methods=['GET'])
+def get_emails_by_category(category):
+    """Fetch emails by category"""
+    response = table.scan(
+        FilterExpression="category = :category",
+        ExpressionAttributeValues={":category": category}
+    )
+    emails = [item["email"] for item in response.get("Items", [])]
+    return {"category": category, "emails": emails}
+
+@app.route('/get-emails', methods=['GET'])
+def get_all_emails():
+    """Fetch all stored emails from DynamoDB"""
+    response = table.scan()
+    emails = [{"email": item["email"], "category": item["category"]} for item in response.get("Items", [])]
+    return emails
+
+from chalice import Chalice, Response
+import boto3
+import os
+
+app = Chalice(app_name="email-api")
+
+# AWS Configurations
+AWS_REGION = "your-region"  # e.g., us-east-1
+TABLE_NAME = "your-dynamodb-table"
+SES_SENDER_EMAIL = "your-verified-email@example.com"  # Must be verified in SES
+
+# Initialize AWS Clients
+dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+table = dynamodb.Table(TABLE_NAME)
+ses_client = boto3.client("ses", region_name=AWS_REGION)
+
+@app.route('/store-emails', methods=['POST'])
+def store_emails():
+    """Stores multiple emails under the same category in DynamoDB"""
+    request = app.current_request.json_body
+    category = request.get("category")
+    emails = request.get("emails")
+
+    if not category or not isinstance(emails, list) or not emails:
+        return Response(body={"error": "Category and a non-empty list of emails are required."}, status_code=400)
+
+    # Store each email separately in DynamoDB
+    with table.batch_writer() as batch:
+        for email in emails:
+            batch.put_item(Item={"email": email, "category": category})
+
+    return {"message": f"{len(emails)} emails stored successfully!", "category": category}
+
+@app.route('/get-emails/{category}', methods=['GET'])
+def get_emails_by_category(category):
+    """Fetch emails by category"""
+    response = table.scan(
+        FilterExpression="category = :category",
+        ExpressionAttributeValues={":category": category}
+    )
+    emails = [item["email"] for item in response.get("Items", [])]
+    return {"category": category, "emails": emails}
+
+@app.route('/send-emails/{category}', methods=['POST'])
+def send_emails(category):
+    """Sends an email to all users in the given category with a custom message"""
+    request = app.current_request.json_body
+    subject = request.get("subject", "No Subject Provided")
+    message_body = request.get("message", "No message content provided.")
+
+    response = table.scan(
+        FilterExpression="category = :category",
+        ExpressionAttributeValues={":category": category}
+    )
+    emails = [item["email"] for item in response.get("Items", [])]
+
+    if not emails:
+        return Response(body={"error": "No emails found for this category."}, status_code=404)
+
+    # Send emails via AWS SES
+    for email in emails:
+        try:
+            ses_client.send_email(
+                Source=SES_SENDER_EMAIL,
+                Destination={"ToAddresses": [email]},
+                Message={
+                    "Subject": {"Data": subject},
+                    "Body": {"Text": {"Data": message_body}}
+                }
+            )
+        except Exception as e:
+            return Response(body={"error": str(e)}, status_code=500)
+
+    return {"message": f"Emails sent successfully to {len(emails)} recipients in {category} category."}
