@@ -133,48 +133,6 @@ def get_all_emails():
     emails = [{"email": item["email"], "category": item["category"]} for item in response.get("Items", [])]
     return emails
 
-from chalice import Chalice, Response
-import boto3
-import os
-
-app = Chalice(app_name="email-api")
-
-# AWS Configurations
-AWS_REGION = "your-region"  # e.g., us-east-1
-TABLE_NAME = "your-dynamodb-table"
-SES_SENDER_EMAIL = "your-verified-email@example.com"  # Must be verified in SES
-
-# Initialize AWS Clients
-dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
-table = dynamodb.Table(TABLE_NAME)
-ses_client = boto3.client("ses", region_name=AWS_REGION)
-
-@app.route('/store-emails', methods=['POST'])
-def store_emails():
-    """Stores multiple emails under the same category in DynamoDB"""
-    request = app.current_request.json_body
-    category = request.get("category")
-    emails = request.get("emails")
-
-    if not category or not isinstance(emails, list) or not emails:
-        return Response(body={"error": "Category and a non-empty list of emails are required."}, status_code=400)
-
-    # Store each email separately in DynamoDB
-    with table.batch_writer() as batch:
-        for email in emails:
-            batch.put_item(Item={"email": email, "category": category})
-
-    return {"message": f"{len(emails)} emails stored successfully!", "category": category}
-
-@app.route('/get-emails/{category}', methods=['GET'])
-def get_emails_by_category(category):
-    """Fetch emails by category"""
-    response = table.scan(
-        FilterExpression="category = :category",
-        ExpressionAttributeValues={":category": category}
-    )
-    emails = [item["email"] for item in response.get("Items", [])]
-    return {"category": category, "emails": emails}
 
 @app.route('/send-emails/{category}', methods=['POST'])
 def send_emails(category):
