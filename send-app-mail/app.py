@@ -1,6 +1,7 @@
 from chalice import Chalice
 import boto3
 import os
+import uuid
 
 app = Chalice(app_name="send-app-mail")
 ses_client = boto3.client("ses", region_name="eu-west-1")  # Change region if necessary
@@ -8,7 +9,7 @@ ses_client = boto3.client("ses", region_name="eu-west-1")  # Change region if ne
 # Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb", region_name="eu-west-1")
 #TABLE_NAME = os.environ.get("TABLE_NAME", "EmailsTable")
-table = dynamodb.Table(TABLE_NAME)
+table = dynamodb.Table("EMAIL-LIST")
 
 # Change this to your verified email address in AWS SES
 SENDER_EMAIL = "hr@eandeafrica.com"
@@ -50,6 +51,16 @@ EANDÉ Africa Team
         Message={
             "Subject": {"Data": "Thank You for Applying to EANDÉ Africa"},
             "Body": {"Text": {"Data": message}}
+        }
+    )
+
+    # Save email details to DynamoDB
+    table.put_item(
+        Item={
+            "email_id": str(uuid.uuid4()),
+            "email": email,
+            "category": category,
+            "timestamp": datetime.datetime.utcnow().isoformat()  # Store timestamp in UTC
         }
     )
 
@@ -106,7 +117,7 @@ def store_emails():
                 return Response(body={"error": f"Category '{category}' requires a non-empty list of emails."}, status_code=400)
 
             for email in emails:
-                batch.put_item(Item={"email": email, "category": category})
+                batch.put_item(Item={"email_id": str(uuid.uuid4()), "email": email, "category": category})
 
     return {"message": "Emails stored successfully!", "categories": [item["category"] for item in request]}
 
@@ -145,18 +156,16 @@ def send_emails(category):
     if not emails:
         return Response(body={"error": "No emails found for this category."}, status_code=404)
 
-    # Send emails via AWS SES
-    for email in emails:
-        try:
-            ses_client.send_email(
-                Source=SES_SENDER_EMAIL,
-                Destination={"ToAddresses": [email]},
-                Message={
-                    "Subject": {"Data": subject},
-                    "Body": {"Text": {"Data": message_body}}
-                }
-            )
-        except Exception as e:
-            return Response(body={"error": str(e)}, status_code=500)
+    try:
+        ses_client.send_email(
+            Source=SES_SENDER_EMAIL,
+            Destination={"ToAddresses": emails},
+            Message={
+                "Subject": {"Data": subject},
+                "Body": {"Text": {"Data": message_body}}
+            }
+        )
+    except Exception as e:
+        return Response(body={"error": str(e)}, status_code=500)
 
     return {"message": f"Emails sent successfully to {len(emails)} recipients in {category} category."}
