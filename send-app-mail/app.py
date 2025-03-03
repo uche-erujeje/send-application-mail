@@ -65,23 +65,13 @@ def send_bulk_email():
         return {"error": "Invalid or missing email list"}
 
     message = """
-Dear Applicant,
+Hello,
 
-Thank you for your interest in joining EANDÉ Africa. We appreciate the time and effort you put into your application and look forward to learning more about you. Our goal is to make this process as smooth and straightforward as possible.
+Thank you for your interest in joining EANDÉ Africa and for taking the time to apply. We appreciate your patience as we carefully review each application.
 
-About EANDÉ Africa  
-At EANDÉ, we are dedicated to redefining excellence in the luxury industry. Our mission is to set new standards by delivering exceptional experiences and services that elevate the perception of luxury in Africa and beyond. Through LUXFRICA, we empower luxury brands with innovative digital solutions, shaping the future of luxury retail.
+We have received a high volume of applications and are committed to a thorough review process to ensure fairness and find the best fit for our team. Please rest assured that we are actively working on our decisions and will update you as soon as possible regarding the next steps.
 
-Next Steps  
-Our hiring process consists of four key steps:  
-1. Application Review – You have already completed the first step by submitting your application.  
-2. Assessment – We will review all applications and send assessment links to successful candidates within the next week.  
-3. Interview – Once you complete the assessment, we will schedule an interview.  
-4. Final Selection – After interviews, we will select the best candidates and extend offers.
-
-We appreciate your patience as we carefully review each application. If this role is not the right fit at this time, we encourage you to stay connected for future opportunities as we continue to grow.
-
-Thank you again for considering EANDÉ Africa. We look forward to the possibility of working together.
+We truly appreciate your enthusiasm and will get back to you soon. In the meantime, please don't hesitate to reach out if you have any questions.
 
 Best regards,  
 EANDÉ Africa Team
@@ -91,7 +81,7 @@ EANDÉ Africa Team
         Source=SENDER_EMAIL,
         Destination={"ToAddresses": recipients},
         Message={
-            "Subject": {"Data": "Thank You for Applying to EANDÉ Africa"},
+            "Subject": {"Data": "Update on Your Application Status"},
             "Body": {"Text": {"Data": message}}
         }
     )
