@@ -75,7 +75,7 @@ def send_bulk_email():
     if not recipients or not isinstance(recipients, list):
         return {"error": "Invalid or missing email list"}
 
-    message = """
+    message2 = """
 Hello,
 
 Thank you for your interest in joining EANDÉ Africa and for taking the time to apply. We appreciate your patience as we carefully review each application.
@@ -93,7 +93,7 @@ EANDÉ Africa Team
         Destination={"ToAddresses": recipients},
         Message={
             "Subject": {"Data": "Update on Your Application Status"},
-            "Body": {"Text": {"Data": message}}
+            "Body": {"Text": {"Data": message2}}
         }
     )
 
