@@ -97,7 +97,24 @@ EANDÉ Africa Team
         }
     )
 
-    return {"message": "Bulk email sent successfully", "response": response}
+
+    failed_emails = []
+    for recipient in recipients:
+        try:
+            ses_client.send_email(
+                Source=SENDER_EMAIL,
+                Destination={"ToAddresses": [recipient]},  # Send individually
+                Message={
+                    "Subject": {"Data": "Update on Your Application Status"},
+                    "Body": {"Text": {"Data": message2}}
+                }
+            )
+        except Exception as e:
+            failed_emails.append({"email": recipient, "error": str(e)})
+
+    response_message = "Bulk email sent successfully" if not failed_emails else "Some emails failed to send"
+
+    return {"message": response_message, "failed_emails": failed_emails}
 
 
 @app.route('/store-emails', methods=['POST'])
@@ -156,16 +173,17 @@ def send_emails(category):
     if not emails:
         return Response(body={"error": "No emails found for this category."}, status_code=404)
 
-    try:
-        ses_client.send_email(
-            Source=SES_SENDER_EMAIL,
-            Destination={"ToAddresses": emails},
-            Message={
-                "Subject": {"Data": subject},
-                "Body": {"Text": {"Data": message_body}}
-            }
-        )
-    except Exception as e:
-        return Response(body={"error": str(e)}, status_code=500)
+    for email in emails:
+        try:
+            ses_client.send_email(
+                Source=SES_SENDER_EMAIL,
+                Destination={"ToAddresses": [email]},
+                Message={
+                    "Subject": {"Data": subject},
+                    "Body": {"Text": {"Data": message_body}}
+                }
+            )
+        except Exception as e:
+            return Response(body={"error": str(e)}, status_code=500)
 
     return {"message": f"Emails sent successfully to {len(emails)} recipients in {category} category."}
