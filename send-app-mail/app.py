@@ -91,20 +91,25 @@ EANDÉ Africa Team
 
 @app.route('/store-emails', methods=['POST'])
 def store_emails():
-    """Stores multiple emails under the same category in DynamoDB"""
+    """Stores multiple emails under multiple categories in DynamoDB"""
     request = app.current_request.json_body
-    category = request.get("category")
-    emails = request.get("emails")
 
-    if not category or not isinstance(emails, list) or not emails:
-        return Response(body={"error": "Category and a non-empty list of emails are required."}, status_code=400)
+    if not isinstance(request, list) or not all(isinstance(item, dict) and "category" in item and "emails" in item for item in request):
+        return Response(body={"error": "A list of category-email mappings is required."}, status_code=400)
 
-    # Store each email separately in DynamoDB
     with table.batch_writer() as batch:
-        for email in emails:
-            batch.put_item(Item={"email": email, "category": category})
+        for item in request:
+            category = item["category"]
+            emails = item["emails"]
 
-    return {"message": f"{len(emails)} emails stored successfully!", "category": category}
+            if not isinstance(emails, list) or not emails:
+                return Response(body={"error": f"Category '{category}' requires a non-empty list of emails."}, status_code=400)
+
+            for email in emails:
+                batch.put_item(Item={"email": email, "category": category})
+
+    return {"message": "Emails stored successfully!", "categories": [item["category"] for item in request]}
+
 
 @app.route('/get-emails/{category}', methods=['GET'])
 def get_emails_by_category(category):
